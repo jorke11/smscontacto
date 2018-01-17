@@ -1,0 +1,611 @@
+<?php
+
+if (!defined('BASEPATH'))
+    exit('No direct script access allowed');
+
+include(APPPATH . "third_party/SpreadsheetReader.php");
+include(APPPATH . "third_party/php-excel-reader/excel_reader2.php");
+include APPPATH . 'third_party/PHPExcel/IOFactory.php';
+
+class CroncargaModel extends MY_Model {
+
+    public $rutaftp = '/home/autonatura/';
+//    public $rutaftp = '/home/pruebasftp/';
+    public $archivo = '';
+    public $idarchivo = '';
+
+    public function __constructor() {
+        parent::__construct();
+        $this->load->database();
+//        $this->rutaftp = '/home/autonatura/';
+    }
+
+    public function cargaDatos($datos, $hoja) {
+
+        $this->db->trans_begin();
+        $jornada = (date("H") < 12) ? 1 : 2;
+        $error = 0;
+        $arc["nombre"] = $datos["nombre"];
+        $arc["ruta"] = $datos["ruta"];
+        $arc["idusuario"] = -1;
+        $arc["fecha"] = date("Y-m-d H:i:s");
+        $this->idarchivo = $this->insertar("archivos", $arc);
+        $this->archivo = $this->rutaftp . 'archivos/' . $datos["nombre"];
+        if (isset($hoja["cells"])) {
+
+            if (count($hoja["cells"]) == 1) {
+                unlink($this->archivo);
+                $respuesta = 1;
+            } else {
+
+                if ($hoja["cells"][1][1] == "Codigo_Revendedor" && $hoja["numCols"] == 61) {
+                    foreach ($hoja["cells"] as $cont => $value) {
+                        if ($cont > 1) {
+
+                            if (isset($value[30]) && isset($value[29])) {
+                                if (!empty($value[30]) && !empty($value[29])) {
+                                    $value[30] = strtoupper($this->LimpiaMensaje($value[30]));
+                                    $value[29] = $this->LimpiaMensaje($value[29]);
+                                    if ($value[30] != 'NO' && strlen($value[29]) == 10 && $value[29] != '0000000000') {
+                                        $this->InsertaDatos($value, 1);
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    if ($error != 1) {
+                        $ftp = $this->rutaftp . "procesados/" . date("Y-m-d");
+                        $this->crearRutaCarpeta($ftp);
+                        $rutanueva = $ftp . "/" . $datos["nombre"];
+
+                        if (copy($this->archivo, $rutanueva)) {
+                            unlink($this->archivo);
+                        }
+                        $respuesta = 3;
+                    } else {
+                        $respuesta = 4;
+                    }
+                } else {
+                    unlink($this->archivo);
+                    $respuesta = 2;
+                }
+            }
+        } else {
+            $respuesta = 1;
+            unlink($this->archivo);
+        }
+
+        if ($this->db->trans_status() === FALSE || $error != 0) {
+            $query = $this->db->last_query();
+            $this->db->trans_rollback();
+            $err["error"] = true;
+            return $err;
+        } else {
+            $this->db->trans_commit();
+            //hace lo demas si todo esta correcto
+            $cant = $this->buscar("macros", 'count(id) total', 'idarchivo=' . $this->idarchivo, 'row');
+            $up["procesado"] = $cant->total;
+            $up["tipo"] = $respuesta;
+            $up["jornada"] = $jornada;
+            $up["registros"] = count($hoja["cells"]) - 1;
+            $this->update("archivos", $this->idarchivo, $up);
+        }
+    }
+
+    public function cargaDatosPoblaciones($datos, $hoja) {
+
+        $this->db->trans_begin();
+        $jornada = (date("H") < 12) ? 1 : 2;
+        $error = 0;
+        $arc["nombre"] = $datos["nombre"];
+        $arc["ruta"] = $datos["ruta"];
+        $arc["idusuario"] = -1;
+        $arc["fecha"] = date("Y-m-d H:i:s");
+        $this->idarchivo = $this->insertar("archivos", $arc);
+        $this->archivo = $this->rutaftp . 'archivos/' . $datos["nombre"];
+        if (isset($hoja["cells"])) {
+
+            if (count($hoja["cells"]) == 1) {
+                unlink($this->archivo);
+                $respuesta = 1;
+            } else {
+
+                if ($hoja["cells"][1][1] == "Codigo_Revendedor" && $hoja["numCols"] == 61) {
+                    foreach ($hoja["cells"] as $cont => $value) {
+                        if ($cont > 1) {
+                            if (isset($value[30]) && isset($value[29])) {
+                                if (!empty($value[30]) && !empty($value[29])) {
+                                    $value[30] = strtoupper($this->LimpiaMensaje($value[30]));
+                                    $value[29] = $this->LimpiaMensaje($value[29]);
+                                    if ($value[30] != 'NO' && strlen($value[29]) == 10 && $value[29] != '0000000000' &&
+                                            $value[33] != '') {
+                                        $this->InsertaDatosPob($value, 1);
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    if ($error != 1) {
+                        $ftp = $this->rutaftp . "procesados/" . date("Y-m-d");
+                        $this->crearRutaCarpeta($ftp);
+                        $rutanueva = $ftp . "/" . $datos["nombre"];
+
+                        if (copy($this->archivo, $rutanueva)) {
+                            unlink($this->archivo);
+                        }
+                        $respuesta = 3;
+                    } else {
+                        $respuesta = 4;
+                    }
+                } else {
+                    unlink($this->archivo);
+                    $respuesta = 2;
+                }
+            }
+        } else {
+            $respuesta = 1;
+            unlink($this->archivo);
+        }
+
+        if ($this->db->trans_status() === FALSE || $error != 0) {
+            $query = $this->db->last_query();
+            $this->db->trans_rollback();
+            $err["error"] = true;
+            return $err;
+        } else {
+            $this->db->trans_commit();
+            //hace lo demas si todo esta correcto
+            $cant = $this->buscar("poblaciones", 'count(id) total', 'idarchivo=' . $this->idarchivo, 'row');
+            $up["procesado"] = $cant->total;
+            $up["tipo"] = $respuesta;
+            $up["jornada"] = $jornada;
+            $up["registros"] = count($hoja["cells"]) - 1;
+            $this->update("archivos", $this->idarchivo, $up);
+        }
+    }
+
+    public function cargaDatosCartera($datos, $hoja) {
+        $this->db->trans_begin();
+        $jornada = (date("H") < 12) ? 1 : 2;
+        $error = 0;
+        $arc["nombre"] = $datos["nombre"];
+        $arc["ruta"] = $datos["ruta"];
+        $arc["idusuario"] = -1;
+        $arc["fecha"] = date("Y-m-d H:i:s");
+        $this->idarchivo = $this->insertar("archivos", $arc);
+
+        $this->archivo = $this->rutaftp . 'cartera/' . $datos["nombre"];
+
+        if (isset($hoja["cells"])) {
+            if (count($hoja["cells"]) == 1) {
+                unlink($this->archivo);
+                $respuesta = 1;
+            } else {
+                if ($hoja["numCols"] == 5) {
+
+                    foreach ($hoja["cells"] as $cont => $value) {
+                        if ($cont > 1) {
+                            if (isset($value[1]) && isset($value[2])) {
+                                if (!empty($value[1]) && !empty($value[1])) {
+                                    $this->InsertaDatosCar($value, 1);
+                                }
+                            } else {
+                                $err["error"] = 'fila ' . $cont . " no cumple con el formato";
+                                $err["fecha"] = date("Y-m-d H:i:s");
+                                $err["idarchivo"] = $this->archivo;
+                                $this->insertar("errores", $err);
+                                echo "ERROR INSERTADO: ";
+                                print_r($err);
+                                echo "<br>";
+                            }
+
+                            ob_flush();
+                            flush();
+                        }
+                    }
+
+                    if ($error != 1) {
+                        $ftp = $this->rutaftp . "procesados/" . date("Y-m-d");
+                        $this->crearRutaCarpeta($ftp);
+                        $rutanueva = $ftp . "/" . $datos["nombre"];
+
+                        if (copy($this->archivo, $rutanueva)) {
+                            unlink($this->archivo);
+                        }
+                        $respuesta = 3;
+                    } else {
+                        $respuesta = 4;
+                    }
+                } else {
+                    $in["nombre"] = "El archivo no contiene el formato adecuado";
+                    $in["ruta"] = "cartera";
+                    $in["idusuario"] = -1;
+                    $in["fecha"] = date("Y-m-d H:i:s");
+                    $sql = "DELETE FROM archivos where id=" . $this->idarchivo;
+                    $this->db->query($sql);
+                    echo $sql;
+//                    unlink($this->archivo);
+                    $this->insertar("archivos", $in);
+                    $respuesta = 2;
+                    print_r($in);
+                }
+            }
+        } else {
+            $respuesta = 1;
+            unlink($this->archivo);
+        }
+
+        if ($this->db->trans_status() === FALSE || $error != 0) {
+            $query = $this->db->last_query();
+            $this->db->trans_rollback();
+            $err["error"] = true;
+            return $err;
+        } else {
+            $this->db->trans_commit();
+            //hace lo demas si todo esta correcto
+            $cant = $this->buscar("cartera", 'count(id) total', 'idarchivo=' . $this->idarchivo, 'row');
+            $up["procesado"] = $cant->total;
+            $up["tipo"] = $respuesta;
+            $up["jornada"] = $jornada;
+            $up["registros"] = count($hoja["cells"]) - 1;
+            $this->update("archivos", $this->idarchivo, $up);
+        }
+    }
+
+    public function cargaDatosCartera2($datos) {
+
+        $Spreadsheet = new SpreadsheetReader($datos["ruta"]);
+        $Sheets = $Spreadsheet->Sheets();
+
+//        $this->db->trans_begin();
+        $jornada = (date("H") < 12) ? 1 : 2;
+
+        $error = 0;
+
+        $arc["nombre"] = $datos["nombre"];
+        $arc["ruta"] = $datos["ruta"];
+        $arc["idusuario"] = -1;
+        $arc["fecha"] = date("Y-m-d H:i:s");
+//        $this->idarchivo = $this->insertar("archivos", $arc);
+
+        $this->archivo = $this->rutaftp . 'cartera/' . $datos["nombre"];
+
+        foreach ($Sheets as $Index => $Name) {
+            $Spreadsheet->ChangeSheet($Index);
+
+            print_r($Spreadsheet->SpreadsheetReader);
+            exit;
+
+            foreach ($Spreadsheet as $Key => $Row) {
+                if (count($Row) == 5) {
+                    print_r($Row);
+                }
+            }
+        }
+        exit;
+
+
+        if (isset($hoja["cells"])) {
+            if (count($hoja["cells"]) == 1) {
+                unlink($this->archivo);
+                $respuesta = 1;
+            } else {
+
+                if ($hoja["numCols"] == 5) {
+
+                    foreach ($hoja["cells"] as $cont => $value) {
+                        if ($cont > 1) {
+                            if (isset($value[1]) && isset($value[2])) {
+                                if (!empty($value[1]) && !empty($value[1])) {
+                                    $this->InsertaDatosCar($value, 1);
+                                }
+                            } else {
+                                $err["error"] = 'fila ' . $cont . " no cumple con el formato";
+                                $err["fecha"] = date("Y-m-d H:i:s");
+                                $err["idarchivo"] = $this->archivo;
+                                $this->insertar("errores", $err);
+                                echo "ERROR INSERTADO: ";
+                                print_r($err);
+                                echo "<br>";
+                            }
+
+                            ob_flush();
+                            flush();
+                        }
+                    }
+
+                    if ($error != 1) {
+                        $ftp = $this->rutaftp . "procesados/" . date("Y-m-d");
+                        $this->crearRutaCarpeta($ftp);
+                        $rutanueva = $ftp . "/" . $datos["nombre"];
+
+                        if (copy($this->archivo, $rutanueva)) {
+                            unlink($this->archivo);
+                        }
+                        $respuesta = 3;
+                    } else {
+                        $respuesta = 4;
+                    }
+                } else {
+                    $in["nombre"] = "El archivo no contiene el formato adecuado";
+                    $in["ruta"] = "cartera";
+                    $in["idusuario"] = -1;
+                    $in["fecha"] = date("Y-m-d H:i:s");
+
+//                    $sql = "INSERT INTO archivos(nombre,ruta,idusuario,fecha) values('" . $in["nombre"] . "',"
+//                            . "'cartera',-1,'" . $in["fecha"] . "')";
+                    $sql = "DELETE FROM archivos where id=" . $this->idarchivo;
+                    $this->db->query($sql);
+                    echo $sql;
+//                    unlink($this->archivo);
+                    $this->insertar("archivos", $in);
+                    $respuesta = 2;
+                    print_r($in);
+                }
+            }
+        } else {
+            $respuesta = 1;
+            unlink($this->archivo);
+        }
+
+        if ($this->db->trans_status() === FALSE || $error != 0) {
+            $query = $this->db->last_query();
+            $this->db->trans_rollback();
+            $err["error"] = true;
+            return $err;
+        } else {
+            $this->db->trans_commit();
+            //hace lo demas si todo esta correcto
+            $cant = $this->buscar("cartera", 'count(id) total', 'idarchivo=' . $this->idarchivo, 'row');
+            $up["procesado"] = $cant->total;
+            $up["tipo"] = $respuesta;
+            $up["jornada"] = $jornada;
+            $up["registros"] = count($hoja["cells"]) - 1;
+            $this->update("archivos", $this->idarchivo, $up);
+        }
+    }
+
+    function cargaDatosCartera3($datos) {
+
+
+        $inputFileName = $datos["ruta"];
+        $objPHPExcel = PHPExcel_IOFactory::load($inputFileName);
+
+        $rowIterator = $objPHPExcel->getActiveSheet()->getRowIterator();
+        $col = $objPHPExcel->setActiveSheetIndex(0)->getHighestColumn();
+        $fil = $objPHPExcel->setActiveSheetIndex(0)->getHighestRow();
+        $err = 0;
+
+        $arc["nombre"] = $datos["nombre"];
+        $arc["ruta"] = $inputFileName;
+        $arc["idusuario"] = -1;
+        $arc["fecha"] = date("Y-m-d H:i:s");
+        $arc["registros"] = $fil;
+        $this->idarchivo = $this->insertar("archivos", $arc);
+
+        if ($col == 'E' && $fil > 2) {
+            $sql = "TRUNCATE cartera RESTART IDENTITY CASCADE;";
+            $this->db->query($sql);
+            foreach ($rowIterator as $k => $row) {
+                $cellIterator = $row->getCellIterator();
+
+                $cellIterator->setIterateOnlyExistingCells(false); // Loop all cells, even if it is not set
+                if (1 == $row->getRowIndex())
+                    continue; //skip first row la del encabezado
+                $rowIndex = $row->getRowIndex();
+                $array_data[$rowIndex] = array('A' => '', 'B' => '', 'C' => '', 'D' => '');
+
+                foreach ($cellIterator as $key => $cell) {
+
+                    switch ($cell->getColumn()) {
+                        case 'A': {
+
+                                $in["nombre"] = $this->LimpiaMensaje($cell->getValue());
+                                if ($in["nombre"] == '') {
+                                    $err++;
+                                }
+                                break;
+                            }
+                        case 'B': {
+                                $in["sector"] = $cell->getValue();
+                                if ($in["sector"] == '') {
+                                    $err++;
+                                }
+                                break;
+                            }
+                        case 'C': {
+                                $in["celular"] = $cell->getValue();
+                                if ($in["sector"] == '') {
+                                    $err++;
+                                }
+                                break;
+                            }
+                        case 'D': {
+                                $in["deuda"] = $cell->getValue();
+                                break;
+                            }
+                        case 'E': {
+                                $in["diamora"] = $cell->getValue();
+                                break;
+                            }
+                    }
+                }
+
+                $in["fechacargue"] = date("Y-m-d H:i:s");
+                $in["idarchivo"] = $this->idarchivo;
+
+                if ($err == 0) {
+                    $this->insertar("cartera", $in);
+                    echo "<br>";
+                    print_r($in);
+                } else {
+                    $errores["error"] = 'Campos vacios';
+                    $errores["idarchivo"] = $this->idarchivo;
+                    $errores["fecha"] = date("Y-m-d H:i:s");
+
+                    $this->insertar("errores", $errores);
+                    echo "<br>";
+                    print_r($in);
+                    $err = 0;
+                }
+            }
+            $where = 'idarchivo=' . $this->idarchivo;
+            echo $where;
+            $r = $this->buscar("cartera", "count(*) procesado", $where, 'row');
+            $up["procesado"] = $r->procesado;
+            $e = $this->buscar("errores", "count(*) errores", $where, 'row');
+            $up["errores"] = $e->errores;
+            print_r($r);
+            $this->update("archivos", $this->idarchivo, $up);
+
+            $ftp = $this->rutaftp . "procesados/" . date("Y-m-d");
+            $this->crearRutaCarpeta($ftp);
+            $rutanueva = $ftp . "/" . $datos["nombre"];
+
+            if (copy($datos["ruta"], $rutanueva)) {
+                unlink($datos["ruta"]);
+            }
+        } else {
+            $update["nombre"] = ($fil < 2) ? 'Archivo vacio' : 'formato invalido';
+            $this->update("archivos", $this->idarchivo, $update);
+            print_r($update);
+        }
+
+        exit;
+    }
+
+    public function crearRutaCarpeta($rutaCompleta, $archivo = null) {
+        $ruta = explode("/", $rutaCompleta);
+        $completa = '';
+        foreach ($ruta as $value) {
+            $completa .= $value . "/";
+            if (!file_exists($completa)) {
+                mkdir($completa);
+                chmod($completa, 0777);
+            } else {
+                if ($archivo != null) {
+                    if (file_exists($completa . $archivo)) {
+                        unlink($completa . $archivo);
+                    }
+                }
+            }
+        }
+
+        return $rutaCompleta;
+    }
+
+    function InsertaDatos($arreglo, $tipo) {
+        $data["nombre"] = $this->LimpiaMensaje($arreglo[2]);
+        $data["ciclo"] = $arreglo[15];
+        $data["gerencia_comercial"] = $this->LimpiaMensaje($arreglo[19]);
+        $data["codigo_comercial"] = $arreglo[20];
+        $data["sectores"] = $this->LimpiaMensaje($arreglo[21]);
+        $data["codigo_sector"] = $arreglo[22];
+        $data["celular"] = $arreglo[29];
+        $data["confirmado"] = strtoupper($arreglo[30]);
+        $data["tipo"] = $tipo;
+        $data["fechacargue"] = date("Y-m-d H:i:s");
+        $data["idarchivo"] = $this->idarchivo;
+        $this->insertar("macros", $data);
+    }
+
+    function InsertaDatosPob($arreglo, $tipo) {
+        $data["nombre"] = $this->LimpiaMensaje($arreglo[2]);
+        $data["ciclo"] = $arreglo[15];
+        $data["gerencia_comercial"] = $this->LimpiaMensaje($arreglo[19]);
+        $data["codigo_comercial"] = $arreglo[20];
+        $data["sectores"] = $this->LimpiaMensaje($arreglo[21]);
+        $data["codigo_sector"] = $arreglo[22];
+        $data["celular"] = $arreglo[29];
+        $data["confirmado"] = strtoupper($arreglo[30]);
+        $data["municipio"] = $this->LimpiaMensaje($arreglo[33]);
+        $data["departamento"] = $this->LimpiaMensaje($arreglo[32]);
+        $data["tipo"] = $tipo;
+        $data["fechacargue"] = date("Y-m-d H:i:s");
+        $data["idarchivo"] = $this->idarchivo;
+        $this->insertar("poblaciones", $data);
+    }
+
+    function InsertaDatosCar($arreglo, $tipo) {
+        $data["nombre"] = $this->LimpiaMensaje($arreglo[1]);
+        $data["sector"] = trim($arreglo[2]);
+        $data["celular"] = trim($arreglo[3]);
+        $data["deuda"] = trim($arreglo[4]);
+        $data["diamora"] = trim($arreglo[5]);
+        $data["fechacargue"] = date("Y-m-d H:i:s");
+        $data["idarchivo"] = $this->idarchivo;
+        $this->insertar("cartera", $data);
+        print_r($data);
+        echo "<br>";
+    }
+
+    function LimpiaMensaje($string) {
+        $string = trim($string);
+        $string = $this->quitaTilde($string);
+        $string = utf8_encode((filter_var($string, FILTER_SANITIZE_STRING)));
+        $string = $this->quitaTilde($string);
+
+        $string = str_replace(
+                array("\\", "¨", "º", "–", "~", "|", "·",
+            "¡", "[", "^", "`", "]", "¨", "´", "¿",
+            '§', '¤', '¥', 'Ð', 'Þ'), '', $string
+        );
+
+
+        $string = str_replace(
+                array(";",), array(","), $string
+        );
+
+        $string = str_replace(
+                array("&#39;", "&#39,", '&#34;', '&#34,'), array("'", "'", '"', '"'), $string
+        );
+
+        $string = htmlentities($string, ENT_QUOTES | ENT_IGNORE, 'UTF-8');
+
+        $string = str_replace(
+                array('&quot;', '&#39;', '&#039;'), array('"', "'", "'"), $string
+        );
+        $string = str_replace(
+                array('&amp;', '&nbsp;'), array('&', ' '), $string
+        );
+        $string = str_replace(
+                array('&deg;', '&sup3;', '&shy;'), array(''), $string
+        );
+        $string = str_replace(
+                array('&copy;', '&sup3;', '&shy;', '&plusmn;'), array('e', 'o', 'i', 'n'), $string
+        );
+
+
+        return $string;
+    }
+
+    function quitaTilde($string) {
+        $string = str_replace(
+                array('á', 'à', 'ä', 'â', 'ª', 'Á', 'À', 'Â', 'Ä', 'Ã'), array('a', 'a', 'a', 'a', 'a', 'A', 'A', 'A', 'A', 'A'), $string
+        );
+
+        $string = str_replace(
+                array('é', 'è', 'ë', 'ê', 'É', 'È', 'Ê', 'Ë'), array('e', 'e', 'e', 'e', 'E', 'E', 'E', 'E'), $string
+        );
+
+        $string = str_replace(
+                array('í', 'ì', 'ï', 'ï', 'î', 'Í', 'Ì', 'Ï', 'Î'), array('i', 'i', 'i', 'i', 'i', 'I', 'I', 'I', 'I'), $string
+        );
+
+        $string = str_replace(
+                array('ó', 'ò', 'ö', 'ô', 'Ó', 'Ò', 'Ö', 'Ô'), array('o', 'o', 'o', 'o', 'O', 'O', 'O', 'O'), $string
+        );
+
+        $string = str_replace(
+                array('ú', 'ù', 'ü', 'û', 'Ú', 'Ù', 'Û', 'Ü'), array('u', 'u', 'u', 'u', 'U', 'U', 'U', 'U'), $string
+        );
+
+        $string = str_replace(
+                array('ñ', 'Ñ', 'ç', 'Ç'), array('n', 'N', 'c', 'C'), $string
+        );
+        return $string;
+    }
+
+}

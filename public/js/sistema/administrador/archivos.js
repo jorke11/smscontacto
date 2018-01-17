@@ -1,0 +1,3 @@
+$(function () {
+crearTabla("archivos");
+})
