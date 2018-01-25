@@ -7,7 +7,7 @@
     </div>
     <div class="row">
         <div class="col-lg-12">
-            <div class="alert alert-success hide" id="alert-process">Procesado: </div>
+            <div class="alert" id="alert-process">Procesado: 0</div>
         </div>
     </div>
 </div>

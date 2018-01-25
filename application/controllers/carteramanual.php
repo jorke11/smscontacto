@@ -12,13 +12,13 @@ class CarteraManual extends MY_Controller {
         $this->ci = &get_instance();
         //        $this->rutaftp = '/home/pruebasftp/';
 //        $this->rutaftp = '/home/autonatura/';
-        $this->rutaftp = '/var/www/html/smscontacto/autonatura/';
+        $this->rutaftp = '/var/www/html/prbsmscontacto/autonatura/';
     }
 
     public function index() {
 
         $cron = $this->CroncarteraModel->buscar("crones", "*", "nombre='cartera' and estado=0 and consulta=1", 'row');
-        var_dump($cron);exit;
+        
         if ($cron) {
 
             $this->CroncarteraModel->update("crones", $cron->id, array("estado" => 0, "unidad" => 0, "ejecutado" => date("Y-m-d H:i")));
