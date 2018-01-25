@@ -12,13 +12,13 @@ class CarteraManual extends MY_Controller {
         $this->ci = &get_instance();
         //        $this->rutaftp = '/home/pruebasftp/';
 //        $this->rutaftp = '/home/autonatura/';
-        $this->rutaftp = '/var/www/html/prbsmscontacto/autonatura/';
+        $this->rutaftp = '/var/www/html/smscontacto/autonatura/';
     }
 
     public function index() {
 
         $cron = $this->CroncarteraModel->buscar("crones", "*", "nombre='cartera' and estado=0 and consulta=1", 'row');
-
+        var_dump($cron);exit;
         if ($cron) {
 
             $this->CroncarteraModel->update("crones", $cron->id, array("estado" => 0, "unidad" => 0, "ejecutado" => date("Y-m-d H:i")));
@@ -59,10 +59,10 @@ class CarteraManual extends MY_Controller {
 
     public function getprocess() {
         $row = $this->CroncarteraModel->buscar("cartera", "count(*) procesado", null, 'row');
-        $total = $this->CroncarteraModel->buscar("crones", "unidad,estado", "nombre='cartera'", 'row');
+        $total = $this->CroncarteraModel->buscar("crones", "unidad,estado,consulta", "nombre='cartera'", 'row');
         $res = array();
 
-        if ($total->estado == 0) {
+        if ($total->consulta == 0) {
             $res = array("status" => true, "quantity" => $total->unidad);
         } else {
             $res = array("status" => false, "quantity" => $row->procesado);
