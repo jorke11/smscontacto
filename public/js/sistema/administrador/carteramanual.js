@@ -10,16 +10,22 @@ $(function () {
             dataType: 'json',
             async: true,
             success: function (data) {
-
+                if (data.status == true) {
+                    process = setInterval(getData, 4000);
+                } else {
+                    elem.attr("disabled", false);
+                    $("#alert-process").addClass("alert-danger").html(data.msg);
+                }
             }
         })
 
-        process = setInterval(getData, 4000);
+
     })
 });
 
 function getData() {
-    $("#alert-process").removeClass("alert-success")
+    $("#alert-process").removeClass("alert-success").removeClass("alert-danger")
+
     $.ajax({
         url: 'carteramanual/getprocess',
         method: 'get',

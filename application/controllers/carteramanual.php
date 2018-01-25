@@ -10,15 +10,15 @@ class CarteraManual extends MY_Controller {
         $this->load->model("AdministracionModel");
         $this->load->model("CroncarteraModel");
         $this->ci = &get_instance();
-        //        $this->rutaftp = '/home/pruebasftp/';
+                $this->rutaftp = '/home/pruebasftp/';
 //        $this->rutaftp = '/home/autonatura/';
-        $this->rutaftp = '/var/www/html/prbsmscontacto/autonatura/';
+//        $this->rutaftp = '/var/www/html/prbsmscontacto/autonatura/';
     }
 
     public function index() {
 
         $cron = $this->CroncarteraModel->buscar("crones", "*", "nombre='cartera' and estado=0 and consulta=1", 'row');
-        
+
         if ($cron) {
 
             $this->CroncarteraModel->update("crones", $cron->id, array("estado" => 0, "unidad" => 0, "ejecutado" => date("Y-m-d H:i")));
@@ -45,16 +45,25 @@ class CarteraManual extends MY_Controller {
     }
 
     public function setprocess() {
-        $cron = $this->CroncarteraModel->buscar("crones", "*", "nombre='cartera' and estado=0", 'row');
+        $ruta = $this->rutaftp . "cartera";
+//        $ruta = "/home/autonatura/archivos";
 
-        $sql = "TRUNCATE cartera RESTART IDENTITY CASCADE;";
-        $this->ci->db->query($sql);
+        $lista = $this->Directorios($ruta);
 
-        if (count($cron) > 0) {
-            $this->CroncarteraModel->update("crones", $cron->id, array("consulta" => 1, "unidad" => 0));
+        if (count($lista) > 0) {
+            $cron = $this->CroncarteraModel->buscar("crones", "*", "nombre='cartera' and estado=0", 'row');
+
+            $sql = "TRUNCATE cartera RESTART IDENTITY CASCADE;";
+            $this->ci->db->query($sql);
+
+            if (count($cron) > 0) {
+                $this->CroncarteraModel->update("crones", $cron->id, array("consulta" => 1, "unidad" => 0));
+            }
+
+            echo json_encode(array("status" => true));
+        } else {
+            echo json_encode(array("status" => false, "msg" => "No hay archivo disponible para ejecucion"));
         }
-
-        echo json_encode(array("status" => true));
     }
 
     public function getprocess() {
