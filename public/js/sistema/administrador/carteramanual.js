@@ -3,6 +3,7 @@ $(function () {
     $("#btnEjecutar").click(function () {
         var elem = $(this);
         elem.attr("disabled", true);
+        $("#alert-process").removeClass("alert-success").html("Iniciando ....");
         $.ajax({
             url: 'carteramanual/setprocess',
             method: 'get',
