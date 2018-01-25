@@ -243,7 +243,7 @@ class CroncarteraModel extends MY_Model {
             $this->crearRutaCarpeta($ftp);
             $rutanueva = $ftp . "/" . $datos["nombre"];
             if (copy($datos["ruta"], $rutanueva)) {
-                unlink($datos["ruta"]);
+//                unlink($datos["ruta"]);
             }
         } else {
             echo "asd";

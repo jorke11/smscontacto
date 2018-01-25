@@ -4,7 +4,7 @@ Options FollowSymLinks
     RewriteBase /
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteCond %{REQUEST_FILENAME} !-d
-    RewriteRule ^(.*)$ /smscontacto/index.php?/$1 [L]
+    RewriteRule ^(.*)$ /prbsmscontacto/index.php?/$1 [L]
     
 
 </IfModule>

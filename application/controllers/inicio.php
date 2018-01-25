@@ -63,7 +63,7 @@ class Inicio extends MY_Controller {
         unset($data["grupos"]);
 
         $numeros = array_filter($numeros);
-        
+
         $idusuario = $this->session->userdata("idusuario");
         $cupo = $this->consultaSaldo(TRUE);
         $data["fechaenvio"] = ($data["fechaenvio"] == '') ? date("Y-m-d H:i:s") : $data["fechaenvio"];
@@ -78,28 +78,26 @@ class Inicio extends MY_Controller {
 
         $ruta = base_url() . $ruta;
 
-        switch($_SESSION["idperfil"]){
-                case 1:{
-                        $ruta="/var/www/html/smscontacto/public/menu/gerencia.ini";
-                        break;
-                        }
+        switch ($_SESSION["idperfil"]) {
+            case 1: {
+                    $ruta = "/var/www/html/prbsmscontacto/public/menu/gerencia.ini";
+                    break;
+                }
 
-                case 2:{
-                        $ruta="/var/www/html/smscontacto/public/menu/sector.ini";
-                        break;
-                        }
-                case 3:{
-                        $ruta="/var/www/html/smscontacto/public/menu/administrador.ini";
-                        break;
-                        }
-		case 4:{
-                        $ruta="/var/www/html/smscontacto/public/menu/administrador.ini";
-                        break;
-                        }
-
-
+            case 2: {
+                    $ruta = "/var/www/html/prbsmscontacto/public/menu/sector.ini";
+                    break;
+                }
+            case 3: {
+                    $ruta = "/var/www/html/prbsmscontacto/public/menu/administrador.ini";
+                    break;
+                }
+            case 4: {
+                    $ruta = "/var/www/html/prbsmscontacto/public/menu/administrador.ini";
+                    break;
+                }
         }
-                                
+
         //return (parse_ini_file($ruta, true));
         return (parse_ini_file($ruta, true));
     }
@@ -123,7 +121,7 @@ class Inicio extends MY_Controller {
         $idusuario = (isset($idusuario)) ? $idusuario : '';
         if ($idusuario != '') {
             $campos = "CASE WHEN (coalesce(cupo,0) + coalesce(adicion,0)- (coalesce(enviados,0) + coalesce(pendientes,0)))<0 THEN 0";
-            $campos .=" ELSE (coalesce(cupo,0) + coalesce(adicion,0)- (coalesce(enviados,0) + coalesce(pendientes,0))) END cupo";
+            $campos .= " ELSE (coalesce(cupo,0) + coalesce(adicion,0)- (coalesce(enviados,0) + coalesce(pendientes,0))) END cupo";
             $datos = $this->AdministracionModel->buscar("usuarios", $campos, 'id=' . $this->session->userdata("idusuario"), 'row');
             if ($ext == TRUE) {
                 return $datos;

@@ -12,7 +12,7 @@ class CarteraManual extends MY_Controller {
         $this->ci = &get_instance();
         //        $this->rutaftp = '/home/pruebasftp/';
 //        $this->rutaftp = '/home/autonatura/';
-        $this->rutaftp = '/var/www/html/smscontacto/autonatura/';
+        $this->rutaftp = '/var/www/html/prbsmscontacto/autonatura/';
     }
 
     public function index() {
@@ -44,7 +44,7 @@ class CarteraManual extends MY_Controller {
         }
     }
 
-    public function setprocesss() {
+    public function setprocess() {
         $cron = $this->CroncarteraModel->buscar("crones", "*", "nombre='cartera' and estado=0", 'row');
 
         $sql = "TRUNCATE cartera RESTART IDENTITY CASCADE;";
@@ -57,13 +57,12 @@ class CarteraManual extends MY_Controller {
         echo json_encode(array("status" => true));
     }
 
-    public function getprocesss() {
+    public function getprocess() {
         $row = $this->CroncarteraModel->buscar("cartera", "count(*) procesado", null, 'row');
-        $total = $this->CroncarteraModel->buscar("crones", "unidad", "nombre='cartera'", 'row');
-
+        $total = $this->CroncarteraModel->buscar("crones", "unidad,estado", "nombre='cartera'", 'row');
         $res = array();
 
-        if ($row->procesado == $total->unidad) {
+        if ($total->estado == 0) {
             $res = array("status" => true, "quantity" => $total->unidad);
         } else {
             $res = array("status" => false, "quantity" => $row->procesado);

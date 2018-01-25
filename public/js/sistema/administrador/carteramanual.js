@@ -4,7 +4,7 @@ $(function () {
         var elem = $(this);
         elem.attr("disabled", true);
         $.ajax({
-            url: 'carteramanual/setprocesss',
+            url: 'carteramanual/setprocess',
             method: 'get',
             dataType: 'json',
             async: true,
@@ -20,7 +20,7 @@ $(function () {
 function getData() {
 
     $.ajax({
-        url: 'carteramanual/getprocesss',
+        url: 'carteramanual/getprocess',
         method: 'get',
         dataType: 'json',
         async: true,
